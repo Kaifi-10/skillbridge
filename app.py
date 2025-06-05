@@ -7,6 +7,7 @@ from io import BytesIO
 import PyPDF2
 from dotenv import load_dotenv
 import random
+from supabase import create_client, Client
 
 load_dotenv()
 
@@ -14,13 +15,19 @@ st.set_page_config(page_title="SkillBridge", layout="centered")
 
 st.title("🚀 SkillBridge - AI Career & Skill Coach")
 
+# Load API keys and Supabase config from .env
 OPENROUTER_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = "google/gemini-2.0-flash-001"
 SITE_URL = "https://your-site-url.com"  # Optional, update as needed
 SITE_NAME = "SkillBridge"  # Optional, update as needed
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
 INTERVIEWER_NAMES = ["Steve", "Natasha", "Tony", "Clint", "Bruce", "Chris", "Peter", "Nick", "Yelena", "Bucky"]
+
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def get_openrouter_response(prompt):
     headers = {
@@ -46,6 +53,82 @@ def get_openrouter_response(prompt):
         return data["choices"][0]["message"]["content"]
     except Exception as e:
         return f"Error: {e}"
+
+# --- Authentication UI ---
+if 'user' not in st.session_state:
+    st.session_state['user'] = None
+if 'username' not in st.session_state:
+    st.session_state['username'] = None
+
+def show_auth():
+    st.subheader("Login or Sign Up")
+    if 'signup_success' not in st.session_state:
+        st.session_state['signup_success'] = False
+    if 'show_login' not in st.session_state:
+        st.session_state['show_login'] = False
+
+    auth_mode = st.radio("Select mode", ["Login", "Sign Up"], key="auth_mode_radio")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+
+    # Show only the green section after successful signup
+    if st.session_state['signup_success']:
+        st.success("Check your email for a verification link to complete sign up.")
+        if st.button("Go to Login"):
+            st.session_state['signup_success'] = False
+            st.session_state['show_login'] = True
+            st.rerun()
+        return
+
+    # Show login form if show_login is set
+    if st.session_state['show_login']:
+        auth_mode = "Login"
+
+    if auth_mode == "Sign Up":
+        if st.button("Sign Up"):
+            try:
+                res = supabase.auth.sign_up({"email": email, "password": password})
+                if getattr(res, "user", None):
+                    st.session_state['signup_success'] = True
+                    st.session_state['show_login'] = False
+                    st.rerun()
+                else:
+                    st.error(str(getattr(res, "error", res)))
+            except Exception as e:
+                if "can only request this after" in str(e):
+                    st.error("You are signing up too quickly. Please wait a minute before trying again.")
+                else:
+                    st.error(str(e))
+    else:
+        if st.button("Login"):
+            st.session_state['show_login'] = False
+            try:
+                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                if getattr(res, "user", None):
+                    st.session_state['user'] = res.user
+                    st.success("Logged in successfully!")
+                    st.rerun()
+                else:
+                    st.error(str(getattr(res, "error", res)))
+            except Exception as e:
+                if "Email not confirmed" in str(e):
+                    st.error("Please confirm the email to log in.")
+                else:
+                    st.error(str(e))
+
+def show_user_menu():
+    with st.sidebar:
+        st.markdown("## 👤 User Menu")
+        st.write(f"**Email:** {st.session_state['user'].email if st.session_state['user'] else ''}")
+        if st.button("Log out"):
+            st.session_state['user'] = None
+            st.rerun()
+
+if not st.session_state['user']:
+    show_auth()
+    st.stop()
+else:
+    show_user_menu()
 
 # Session state for storing last suggestions
 if 'last_career_path' not in st.session_state:
