@@ -66,6 +66,8 @@ def show_auth():
         st.session_state['signup_success'] = False
     if 'show_login' not in st.session_state:
         st.session_state['show_login'] = False
+    if 'username' not in st.session_state:
+        st.session_state['username'] = ''
 
     auth_mode = st.radio("Select mode", ["Login", "Sign Up"], key="auth_mode_radio")
     email = st.text_input("Email")
@@ -85,12 +87,14 @@ def show_auth():
         auth_mode = "Login"
 
     if auth_mode == "Sign Up":
+        username = st.text_input("Username")
         if st.button("Sign Up"):
             try:
                 res = supabase.auth.sign_up({"email": email, "password": password})
                 if getattr(res, "user", None):
                     st.session_state['signup_success'] = True
                     st.session_state['show_login'] = False
+                    st.session_state['username'] = username
                     st.rerun()
                 else:
                     st.error(str(getattr(res, "error", res)))
@@ -106,6 +110,9 @@ def show_auth():
                 res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                 if getattr(res, "user", None):
                     st.session_state['user'] = res.user
+                    # Keep the username from session if already set, else fallback to email prefix
+                    if not st.session_state['username']:
+                        st.session_state['username'] = email.split('@')[0]
                     st.success("Logged in successfully!")
                     st.rerun()
                 else:
@@ -118,10 +125,11 @@ def show_auth():
 
 def show_user_menu():
     with st.sidebar:
-        st.markdown("## 👤 User Menu")
+        st.markdown(f"## 👤 {st.session_state.get('username', 'User Menu')}")
         st.write(f"**Email:** {st.session_state['user'].email if st.session_state['user'] else ''}")
         if st.button("Log out"):
             st.session_state['user'] = None
+            st.session_state['username'] = ''
             st.rerun()
 
 if not st.session_state['user']:
