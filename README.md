@@ -123,11 +123,6 @@ skillbridge/
 
 ---
 
-## 🛡️ License
-
-[MIT License](LICENSE)
-
----
 
 ## 🙏 Acknowledgements
 
