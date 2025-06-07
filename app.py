@@ -153,20 +153,22 @@ with tab1:
     education = st.text_input("Your Education")
     experience = st.text_area("Your Experience")
     if st.button("Suggest Careers"):
-        prompt = get_career_path_prompt(skills, interests, education, experience)
-        response = get_openrouter_response(prompt)
-        st.session_state['last_career_path'] = response
-        st.success(response)
+        with st.spinner("A new Career Path is getting generated for you with the desired skill sets..."):
+            prompt = get_career_path_prompt(skills, interests, education, experience)
+            response = get_openrouter_response(prompt)
+            st.session_state['last_career_path'] = response
+            st.success(response)
 
 with tab2:
     st.header("Learning Roadmap Generator")
     skills = st.text_area("Your Current Skills")
     goal = st.text_input("Your Career Goal (e.g. Data Scientist)")
     if st.button("Generate Roadmap"):
-        prompt = get_roadmap_prompt(skills, goal)
-        response = get_openrouter_response(prompt)
-        st.session_state['last_roadmap'] = response
-        st.info(response)
+        with st.spinner("Your desired career Roadmap is getting Ready for you..."):
+            prompt = get_roadmap_prompt(skills, goal)
+            response = get_openrouter_response(prompt)
+            st.session_state['last_roadmap'] = response
+            st.info(response)
 
 with tab3:
     st.header("Resume Feedback")
@@ -183,9 +185,10 @@ with tab3:
         resume_text = st.text_area("Paste Your Resume Here")
     job_role = st.text_input("Target Job Role")
     if st.button("Get Feedback"):
-        prompt = get_resume_feedback_prompt(resume_text, job_role)
-        response = get_openrouter_response(prompt)
-        st.warning(response)
+        with st.spinner("Your resume feedback will be generated in a moment..."):
+            prompt = get_resume_feedback_prompt(resume_text, job_role)
+            response = get_openrouter_response(prompt)
+            st.warning(response)
 
 with tab4:
     st.header("Mock Interview")
@@ -225,5 +228,6 @@ with tab4:
         else:
             st.info("No learning roadmap found. Please use the 'Learning Roadmap Generator' tab first.")
     if interview_prompt:
-        response = get_openrouter_response(interview_prompt)
-        st.success(response)
+        with st.spinner("Your Mock interview is being generated, please be ready for the Upcoming Interview..."):
+            response = get_openrouter_response(interview_prompt)
+            st.success(response)
